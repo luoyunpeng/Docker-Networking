@@ -43,6 +43,7 @@ Docker开发了一种新的应用程序交付方式，通过这种方式，容�
 
 Docker网络架构构建在一组称为容器网络模型（CNM）的接口上。 CNM的理念是为各种基础设施提供应用程序可移植性。
 该模型在实现应用程序可移植性方面取得了平衡，并且还利用了基础结构的特殊功能。
+
 ![图 1 ](./images/cnm.png)
 
 ## 容器网络模型构造设计(CNM Constructs)
@@ -62,6 +63,7 @@ CNM中有几个高级构造。它们都是操作系统和基础架构无关的�
     * 本机网络drivers - 本机网络drivers是Docker Engine的一部分，由Docker提供。有多种drivers可供选择，支持不同的功能，如overlay或本地bridge。
     * 远程网络drivers - 远程网络drivers是社区和其他供应商创建的网络驱动程序。这些drivers可用于提供与现有软件和硬件的集成。用户还可以在需要现有网络driver不支持的特定功能的情况下创建自己的drivers。
 * IPAM驱动 -  Docker具有本机IP地址管理driver，如果未指定，则为网络和端点提供默认子网或IP地址。也可以通过网络，容器和服务创建命令手动分配IP寻址。远程IPAM驱动程序也存在，并提供与现有IPAM工具的集成。
+
 ![图 2 ](./images/cnm-api.png)
 
 ## Docker原生网络驱动程序
@@ -129,6 +131,7 @@ iptables是本机包过滤系统，自2.4版本以来一直是Linux内核的一�
 除了传播控制平面数据之外，Docker分布式网络控制平面还管理Swarm范围的Docker网络的状态。它是Docker Swarm集群的内置功能，不需要任何额外的组件，如外部KV存储。控制平面使用基于SWIM的Gossip协议在Docker容器集群中传播网络状态信息和拓扑。 Gossip协议非常有效地实现了集群内的最终一致性，同时保持了非常大规模集群中消息大小，故障检测时间和收敛时间的恒定速率。这可确保网络能够跨多个节点进行扩展，而不会引入缩放问题，例如收敛缓慢或误报节点故障。
     
 控制平面非常安全，通过加密通道提供机密性，完整性和身份验证。它也是每个网络的范围，大大减少了任何给定主机收到的更新。
+
 ![图 3 ](./images/controlplane.png)
 
 它由多个组件组成，这些组件协同工作以实现跨大规模网络的快速收敛。控制平面的分布式特性可确保群集控制器故障不会影响网络性能。
@@ -147,6 +150,7 @@ Docker网络控制平面组件如下：
 主机网络驱动程序对于Docker的新用户来说是最熟悉的，因为它与Linux在没有Docker时使用的网络配置相同。 --net = host有效地关闭了Docker网络，容器使用主机操作系统的主机（或默认）网络堆栈。
    
 通常使用其他网络驱动程序，每个容器都放在其自己的网络命名空间（或沙箱）中，以提供彼此完全的网络隔离。使用主机驱动程序容器都在同一主机网络命名空间中，并使用主机的网络接口和IP堆栈。主机网络中的所有容器都能够在主机接口上相互通信。从网络角度来看，这相当于在没有容器的主机上运行的多个进程。因为它们使用相同的主机接口，所以没有两个容器能够绑定到同一个TCP端口。如果在同一主机上安排多个容器，这可能会导致端口争用。
+
 ![图 4 ](./images/host-driver.png)
 
     #Create containers on the host network
@@ -229,6 +233,7 @@ Docker网络控制平面组件如下：
 
 ## 用户定义的网桥
 除了默认网络，用户还可以创建自己的网络，称为任何网络驱动程序类型的用户定义网络。 在用户定义的桥接网络的情况下，在主机上设置新的Linux桥接器。 与默认桥接网络不同，用户定义的网络支持手动IP地址和子网分配。 如果未给出赋值，则Docker的默认IPAM驱动程序将分配私有IP空间中可用的下一个子网。
+
 ![图 6 ](./images/bridge2.png)
 
 在用户定义的桥接网络下面创建了两个连接到它的容器。 指定了子网，网络名为my_bridge。 一个容器未获得IP参数，因此IPAM驱动程序会为其分配子网中的下一个可用IP。 另一个容器已指定IP。
@@ -275,8 +280,6 @@ Ingress访问是通过显式端口发布提供的。端口发布由Docker Engine
 
 ![图 7 ](./images/nat.png)
 
-
-994/5000
 使用Docker CLI或UCP中的--publish / -p配置外部访问。 运行上述命令后，该图显示容器C2已连接到my_bridge网络，其IP地址为10.0.0.2。 容器在主机接口192.168.0.2的端口5000上向外界通告其服务。 进入此接口的所有流量：端口是发布到容器接口的10.0.0.2:80的端口。
 
 由容器启动的出站流量被伪装，以便它来自主机接口192.168.0.2上的短暂端口32768。 返回流量使用相同的IP地址和端口作为其目标，并在内部伪装回容器地址：端口10.0.0.2:33920。 使用端口发布时，网络上的外部流量始终使用主机IP和公开端口，而不使用容器IP和内部端口。
@@ -308,6 +311,7 @@ VXLAN定义为MAC-in-UDP封装，将容器第2层帧放置在底层IP / UDP头�
 
 ## Overlay驱动程序内部架构
 Docker Swarm控制平面可自动完成覆盖网络的所有配置。 不需要VXLAN配置或Linux网络配置。 数据平面加密是叠加的可选功能，也可以在创建网络时由覆盖驱动程序自动配置。 用户或网络运营商只需定义网络（docker network create -d overlay ...）并将容器附加到该网络。
+
 ![图 9 ](./images/overlayarch.png)
 
 在Overlay网络创建期间，Docker Engine会在每台主机上创建覆盖所需的网络基础架构。 每个覆盖创建一个Linux桥及其关联的VXLAN接口。 仅当在主机上安排连接到该网络的容器时，Docker Engine才会智能地在主机上实例化覆盖网络。 这可以防止不存在连接容器的覆盖网络蔓延。
@@ -371,6 +375,7 @@ Swarm和UCP提供对群集端口发布之外的服务的访问。 服务的入�
 
 ## 入口设计(ingress design)
 发布模式有很多好的用例。 入口模式适用于具有多个副本并需要在这些副本之间进行负载平衡的服务。 如果其他工具已提供外部服务发现，则主机模式可以正常工作。 主机模式的另一个好用例是每个主机存在一次的全局容器。 这些容器可能会公开与本主机相关的特定信息（例如监视或日志记录），因此您不希望在访问该服务时进行负载平衡。
+
 ![图 10 ](./images/ingress-vs-host.png)
 
 ## MACVLAN
@@ -453,7 +458,7 @@ Docker使用嵌入式DNS为在单个Docker引擎上运行的容器和在Docker S
    
 如果目标容器或服务不属于与源容器相同的网络，则Docker Engine会将DNS查询转发到配置的默认DNS服务器。
 
-![图 12 ](./images/DNS.png)
+![图 13 ](./images/DNS.png)
 
 在这个例子中，有两个名为myservice的容器服务。 第二个服务（客户端）存在于同一网络上。 客户端为docker.com和myservice执行两个curl操作。 这些是由此产生的结果：
 
@@ -468,7 +473,7 @@ Docker Swarm集群具有内置的内部和外部负载平衡功能，这些功�
 ## UCP内部负载平衡
 创建Docker服务时，会自动实例化内部负载平衡。 在Docker Swarm集群中创建服务时，会自动为它们分配一个虚拟IP（VIP），该虚拟IP是服务网络的一部分。 解析服务名称时返回VIP。 到该VIP的流量将自动发送到覆盖网络上该服务的所有健康任务。 这种方法避免了任何客户端负载平衡，因为只有一个IP返回给客户端。 Docker负责路由并在健康的服务任务中平均分配流量。
 
-![图 13 ](./images/ipvs.png)
+![图 14 ](./images/ipvs.png)
 
 要查看VIP，请运行docker service检查my_service，如下所示：
 
@@ -503,7 +508,7 @@ Docker Swarm集群具有内置的内部和外部负载平衡功能，这些功�
     #Create a service with two replicas and export port 8000 on the cluster
     $ docker service create --name app --replicas 2 --network appnet -p 8000:80 nginx
     
-![图 14 ](./images/routing-mesh.png)
+![图 15 ](./images/routing-mesh.png)
 
 
 此图说明了Routing Mesh的工作原理。
@@ -516,7 +521,7 @@ Docker Swarm集群具有内置的内部和外部负载平衡功能，这些功�
 ## UCP外部L7负载均衡（HTTP路由网）
 UCP通过HTTP Routing Mesh提供L7 HTTP / HTTPS负载均衡。 URL可以对服务进行负载平衡，并在服务副本之间进行负载平衡。
    
-![图 15 ](./images/ucp-hrm.png)
+![图 16 ](./images/ucp-hrm.png)
 
 转到[UCP负载平衡参考架构](https://success.docker.com/Architecture/Docker_Reference_Architecture%3A_Universal_Control_Plane_2.0_Service_Discovery_and_Load_Balancing)了解有关UCP L7 LB设计的更多信息。
 
@@ -545,7 +550,7 @@ Docker支持开箱即用的覆盖网络的IPSec加密。 Swarm和UCP管理的IPS
    
 此图说明了如何保护在Docker Swarm中的不同主机上运行的两个容器之间的通信。
 
-![图 16 ](./images/ipsec.png)
+![图 17 ](./images/ipsec.png)
 
 通过添加--opt encrypted = true选项（例如docker network create -d overlay --opt encrypted = true <NETWORK_NAME>），可以在创建时为每个网络启用此功能。创建网络后，您可以在该网络上启动服务（例如，docker service create --network <NETWORK_NAME> <IMAGE> <COMMAND>）。当在两个不同的主机上创建相同服务的两个任务时，会在它们之间创建IPsec隧道，并且流量在离开源主机时会被加密，并在进入目标主机时被解密。
 
@@ -554,7 +559,7 @@ Swarm领导者定期重新生成对称密钥，并将其安全地分发到所有
 ## 管理平面安全和RBCP与UCP
 使用UCP创建网络时，团队和标签定义对容器资源的访问。资源许可标签定义了谁可以查看，配置和使用某些Docker网络。
 
-![图 17 ](./images/ucp-network.png)
+![图 18 ](./images/ucp-network.png)
 
 此UCP屏幕截图显示了使用标签生产团队来控制对该网络的成员的访问。 此外，可以通过UCP切换网络加密等选项。
 
@@ -604,7 +609,7 @@ chrch / docker-pets需要一个环境变量DB来告诉它如何查找后端数�
      
 > 如果未指定IP地址，则会在主机的所有接口上公开端口映射。 在这种情况下，容器的应用程序在0.0.0.0:8000上公开。 要提供要使用标志的特定IP地址-p IP：host_port：container_port。 可以在Docker文档中找到更多公开端口的选项。
 
-![图 18 ](./images/singlehost-bridge.png)
+![图 19 ](./images/singlehost-bridge.png)
 
 应用程序在其所有接口上的端口8000上本地公开。 还提供了DB = db，提供后端容器的名称。 Docker Engine的内置DNS将此容器名称解析为db的IP地址。 由于bridge是本地驱动程序，因此DNS解析的范围仅限于单个主机。
 
@@ -636,7 +641,7 @@ chrch / docker-pets需要一个环境变量DB来告诉它如何查找后端数�
     
 Web服务现在应该在主机-B IP地址的端口8000上提供其网页。
 
-![图 19 ](./images/multi-host-bridge.png)
+![图 20 ](./images/multi-host-bridge.png)
 
 > 在此示例中，我们不指定要使用的网络，因此会自动选择默认的Docker桥接网络。
 
@@ -669,7 +674,7 @@ Web服务现在应该在主机-B IP地址的端口8000上提供其网页。
     lxnjfo2dnjxq  db    replicated  1/1       consul:latest
     t222cnez6n7h  web   replicated  0/1       chrch/docker-pets:1.0
     
-![图 20 ](./images/overlay-pets-example.png)
+![图 21 ](./images/overlay-pets-example.png)
 
 与在单主机桥示例中一样，我们将DB = db作为环境变量传递给Web服务。 覆盖驱动程序将服务名称db解析为容器的覆盖IP地址。 Web和db之间的通信仅使用覆盖IP子网进行。
 
@@ -686,7 +691,7 @@ Web服务在端口8000上公开，路由网络在Swarm集群中的每个主机�
 ## 教程应用程序：MACVLAN桥接模式
 在某些情况下，应用程序或网络环境要求容器具有可作为底层子网一部分的可路由IP地址。 MACVLAN驱动程序提供了实现此功能的实现。如MACVLAN体系结构部分所述，MACVLAN网络将自身绑定到主机接口。这可以是物理接口，逻辑子接口或绑定的逻辑接口。它充当虚拟交换机，并在同一MACVLAN网络上的容器之间提供通信。每个容器接收唯一的MAC地址和该节点所连接的物理网络的IP地址。
 
-![图 21 ](./images/2node-macvlan-app.png)
+![图 22 ](./images/2node-macvlan-app.png)
 
 在此示例中，Pets应用程序部署在host-A和host-B上。
 
