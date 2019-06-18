@@ -1,5 +1,5 @@
-# docker networking 翻译
-Raft一致性算法论文的中文翻译
+# docker networking
+Designing Scalable, Portable Docker Container Networks的中文翻译
 
 英文[论文地址](https://success.docker.com/article/networking)
 
