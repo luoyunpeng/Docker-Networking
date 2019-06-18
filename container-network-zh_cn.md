@@ -2,9 +2,9 @@
 
 ## What You Will Learn
 
-Docker容器将一个软件包装在一个完整的文件系统中，该文件系统包含运行所需的一切：
-代码，运行时，系统工具，系统库 - 可以安装在服务器上的任何东西。 
-这可以保证软件始终运行相同，无论其环境如何。 
+Docker容器将软件包装在一个完整的文件系统中，该文件系统包含运行所需的一切：
+code，runtime，系统工具，系统库 - 可以安装在服务器上的任何东西。 
+这可以保证软件总是一致的运行，无论其环境如何。 
 默认情况下，容器将应用程序彼此隔离，并将底层基础架构隔离，同时为应用程序提供额外的保护层.
 
 ## Prerequisites
@@ -26,63 +26,57 @@ Docker开发了一种新的应用程序交付方式，通过这种方式，容�
 以下主题是容器化应用程序的常见设计主题：
 
 * 可移植性
-
     * 如何利用独特的网络特性保证跨多种网络环境的最大可移植性？
 * 服务发现
-  
-    * 我如何知道服务在扩展和缩小时的生活方式？
-* 负载均衡
-  
-    * 当服务本身被提升和扩展时，如何在服务之间共享负载？
+    * 我如何知道服务在扩展和缩小时，服务运行的位置？
+* 负载均衡  
+    * 当服务创建和扩展时，如何在服务之间共享负载？
 * 安全
-  
     * 如何进行分段以防止错误的容器相互访问？
     * 如何保证具有应用程序和群集控制流量的容器是安全的？
-* 性能
-  
+* 性能  
     * 如何在最小化延迟和最大化带宽的同时提供高级网络服务？
-* 可扩展性
-  
+* 可扩展性  
     * 在跨多个主机扩展应用程序时，如何确保不会牺牲这些特性？
 
-## 容器网络模型
+## 容器网络模型(The Container Networking Model，以下简称CNM)
 
 Docker网络架构构建在一组称为容器网络模型（CNM）的接口上。 CNM的理念是为各种基础设施提供应用程序可移植性。
 该模型在实现应用程序可移植性方面取得了平衡，并且还利用了基础结构的特殊功能。
 ![图 1 ](./images/cnm.png)
 
-## 容器网络模型构造设计(CNM(Container Networking Model) Constructs)
+## 容器网络模型构造设计(CNM Constructs)
 
 CNM中有几个高级构造。它们都是操作系统和基础架构无关的，因此无论基础架构堆栈如何，应用程序都可以获得统一的体验。
 
-* 沙箱(Sandbox) - 沙箱包含容器网络堆栈的配置。这包括管理容器的接口，路由表和DNS设置。 Sandbox的实现可以是Linux网络命名空间，FreeBSD Jail或其他类似的概念。沙箱可能包含来自多个网络的许多端点。
+* 沙箱(Sandbox) - 沙箱包含容器网络堆栈的配置。这包括管理容器的接口，路由表和DNS设置。 Sandbox的实现可以是Linux Network Namespace，FreeBSD Jail或其他类似的概念。沙箱可能包含来自多个网络的许多端点。
 * 端点(Endpoint) - 端点将沙箱连接到网络。端点构造存在，因此可以从应用程序中抽象出与网络的实际连接。这有助于保持可移植性，以便服务可以使用不同类型的网络驱动程序，而无需关心它如何连接到该网络。
-* 网络(Network) -  CNM未根据OSI模型指定网络。网络的实现可以是Linux网桥，VLAN等。网络是端点的集合，它们之间具有连接。未连接到网络的端点在网络上没有连接。
+* 网络(Network) -  CNM未根据OSI模型指定网络。网络的实现可以是Linux网桥，VLAN等。网络是端点的集合，它们之间具有连接。未连接到网络的端点在网络上没有连通。
 
 ## CNM驱动程序接口
-   容器网络模型提供两个可插入和开放的接口，供用户，社区和供应商使用，以利用网络中的其他功能，可见性或控制。
+容器网络模型提供两个可插入和开放的接口，供用户，社区和供应商使用，以利用网络中的其他功能，可见性或控制。
    
-   存在以下网络驱动程序：
+存在以下网络驱动：
    
-   * 网络驱动程序 -  Docker网络驱动程序提供使网络正常工作的实际实现。它们是可插拔的，因此可以使用不同的驱动程序并轻松互换以支持不同的用例。可以在给定的Docker引擎或群集上同时使用多个网络驱动程序，但每个Docker网络仅通过单个网络驱动程序进行实例化。有两种类型的CNM网络驱动程序：
-   * 本机网络驱动程序 - 本机网络驱动程序是Docker引擎的本机部分，由Docker提供。有多种驱动程序可供选择，支持不同的功能，如覆盖网络或本地网桥。
-   * 远程网络驱动程序 - 远程网络驱动程序是社区和其他供应商创建的网络驱动程序。这些驱动程序可用于提供与现有软件和硬件的集成。用户还可以在需要现有网络驱动程序不支持的特定功能的情况下创建自己的驱动程序。
-   * IPAM驱动程序 -  Docker具有本机IP地址管理驱动程序，如果未指定，则为网络和端点提供默认子网或IP地址。也可以通过网络，容器和服务创建命令手动分配IP寻址。远程IPAM驱动程序也存在，并提供与现有IPAM工具的集成。
+* 网络drivers -  Docker网络drivers提供使网络正常工作的实际实现。它们是可插拔的，因此可以使用不同的drivers并轻松互换以支持不同的用例。可以在给定的Docker Engine或集群上同时使用多个网络驱动程序，但每个Docker网络仅通过单个网络driver进行实例化。有两种类型的CNM网络drivers：
+    * 本机网络drivers - 本机网络drivers是Docker Engine的一部分，由Docker提供。有多种drivers可供选择，支持不同的功能，如overlay或本地bridge。
+    * 远程网络drivers - 远程网络drivers是社区和其他供应商创建的网络驱动程序。这些drivers可用于提供与现有软件和硬件的集成。用户还可以在需要现有网络driver不支持的特定功能的情况下创建自己的drivers。
+* IPAM驱动 -  Docker具有本机IP地址管理driver，如果未指定，则为网络和端点提供默认子网或IP地址。也可以通过网络，容器和服务创建命令手动分配IP寻址。远程IPAM驱动程序也存在，并提供与现有IPAM工具的集成。
 ![图 2 ](./images/cnm-api.png)
 
 ## Docker原生网络驱动程序
-   Docker本机网络驱动程序是Docker Engine的一部分，不需要任何额外的模块。 它们通过标准docker网络命令调用和使用。 存在以下本机网络驱动程序。
+   Docker本机网络drivers是Docker Engine的一部分，不需要任何额外的模块。 它们通过标准`docker network`命令调用和使用。 存在以下本机网络drivers。
    
 |驱动程序|说明|
 |-------|------|
-|Host | 使用Host驱动程序，容器使用主机的网络堆栈。没有命名空间分离，主机上的所有接口都可以由容器直接使用 |
-|Bridge | Bridge驱动程序在Docker管理的主机上创建Linux桥接器。默认情况下，网桥上的容器可以相互通信。也可以通过Bridge驱动程序配置对容器的外部访问 |
-|Overlay | Overlay驱动程序创建一个分层网络，支持开箱即用的多主机网络。它结合使用本地Linux网桥和VXLAN，通过物理网络基础架构覆盖容器到容器的通信 |
-|MACVLAN | macvlan驱动程序使用MACVLAN桥接模式在容器接口和父主机接口（或子接口）之间建立连接。它可用于为可在物理网络上路由的容器提供IP地址。此外，可以将VLAN中继到macvlan驱动程序以强制执行第2层容器分段 |
-|None | None驱动程序为容器提供自己的网络堆栈和网络命名空间，但不配置容器内的接口。如果没有其他配置，容器将与主机网络堆栈完全隔离 |
+|Host | 通过`host` driver，容器可以使用主机的网络堆栈。没有namespace隔离，主机上的所有接口都可以由容器直接使用 |
+|Bridge | `bridge` driver在Docker管理的主机上创建Linux bridge。默认情况下，网桥上的容器可以相互通信。也可以通过`bridge` driver配置外部对容器的访问 |
+|Overlay | `overlay` driver创建一个分层网络，支持开箱即用的多主机网络。它结合使用本地Linux网桥和VXLAN，通过物理网络基础架构覆盖容器到容器的通信 |
+|MACVLAN | `macvlan` driver使用MACVLAN桥接模式在容器接口和父主机接口（或子接口）之间建立连接。它可用于为可在物理网络上路由的容器提供IP地址。此外，可以将VLAN中继到`macvlan` driver以强制执行2层容器分段 |
+|None | `none`驱动程序为容器提供自己的网络堆栈和网络命名空间，但不配置容器内的接口。如果没有其他配置，容器将与主机网络堆栈完全隔离 |
 
 ## 网络范围
- 如docker network ls输出所示，Docker网络驱动程序具有范围概念。 网络范围是驱动程序的域，可以是本地或群范围。 本地范围驱动程序在主机范围内提供连接和网络服务（如DNS或IPAM）。 Swarm范围驱动程序提供跨群集群集的连接和网络服务。 群范围网络在整个群集中具有相同的网络ID，而本地范围网络在每个主机上具有唯一的网络ID。
+如`docker network ls`输出所示，Docker网络driver具有范围概念。 网络范围是驱动程序的域，可以是`local`或`swarm`范围。 `local`范围的driver在主机范围内提供连接和网络服务（如DNS或IPAM）。 `swarm`范围的driver提供跨群集群集的连接和网络服务。 `swarm`范围的网络在整个群集中具有相同的网络ID，而`local`范围的网络在每个主机上具有唯一的网络ID。
  
     $ docker network ls
     NETWORK ID          NAME                DRIVER              SCOPE
@@ -98,26 +92,26 @@ CNM中有几个高级构造。它们都是操作系统和基础架构无关的�
 
 |Driver|	Description|
 |-------|------|
-|contiv	| An open source network plugin led by Cisco Systems to provide infrastructure and security policies for multi-tenant microservices deployments. Contiv also provides integration for non-container workloads and with physical networks, such as ACI. Contiv implements remote network and IPAM drivers. |
-|weave	| A network plugin that creates a virtual network that connects Docker containers across multiple hosts or clouds. Weave provides automatic discovery of applications, can operate on partially connected networks, does not require an external cluster store, and is operations friendly. |
-|calico	| An open source solution for virtual networking in cloud datacenters. It targets datacenters where most of the workloads (VMs, containers, or bare metal servers) only require IP connectivity. Calico provides this connectivity using standard IP routing. Isolation between workloads — whether according to tenant ownership or any finer grained policy — is achieved via iptables programming on the servers hosting the source and destination workloads. |
-|kuryr	| A network plugin developed as part of the OpenStack Kuryr project. It implements the Docker networking (libnetwork) remote driver API by utilizing Neutron, the OpenStack networking service. Kuryr includes an IPAM driver as well. |
+|[contiv](http://contiv.github.io/)	| 由Cisco Systems领导的开源网络插件，为多租户微服务部署提供基础架构和安全策略。 Contiv还为非容器工作负载和物理网络（如ACI）提供集成。 Contiv实现远程网络和IPAM驱动程序。|
+|[weave](https://www.weave.works/docs/net/latest/introducing-weave/)	| 一个网络插件，用于创建跨多个主机或云连接Docker容器的虚拟网络。 Weave提供应用程序的自动发现，可以在部分连接的网络上运行，不需要外部群集存储，并且操作友好。 |
+|[calico](https://www.projectcalico.org/)	| 云数据中心虚拟网络的开源解决方案。 它面向数据中心，大多数工作负载（虚拟机，容器或裸机服务器）只需要IP连接。 Calico使用标准IP路由提供此连接。 工作负载之间的隔离 - 无论是根据租户所有权还是任何更细粒度的策略 - 都是通过托管源和目标工作负载的服务器上的iptables编程实现的。|
+|[kuryr](https://github.com/openstack/kuryr)	| 作为OpenStack Kuryr项目的一部分开发的网络插件。 它通过利用OpenStack网络服务Neutron实现Docker网络（libnetwork）远程驱动程序API。 Kuryr还包括一个IPAM驱动程序。 |
 
 ## Docker远程IPAM驱动程序
 社区和供应商创建的IPAM驱动程序还可用于提供与现有系统或特殊功能的集成。
 
 |Driver | Description|
 |-------|------|
-|infoblox |	An open source IPAM plugin that provides integration with existing Infoblox tools. |
+|infoblox |	一个开源IPAM插件，提供与现有Infoblox工具的集成。 |
 
-    There are many Docker plugins that exist and more are being created all the time. Docker maintains a list of the [most common plugins](https://docs.docker.com/engine/extend/legacy_plugins/).
+>存在许多Docker插件，并且一直在创建更多插件。 Docker维护着一个[最常见的插件列表](https://docs.docker.com/engine/extend/legacy_plugins/).
 
 ## Linux网络基础知识
-Linux内核具有非常成熟和高性能的TCP / IP堆栈实现（除了DNS和VXLAN等其他本机内核功能）。 Docker网络使用内核的网络堆栈作为低级原语来创建更高级别的网络驱动程序。 简而言之，Docker网络就是Linux网络。
+Linux内核具有非常成熟和高性能的TCP/IP堆栈实现（除了DNS和VXLAN等其他本机内核功能）。 Docker网络使用内核的网络堆栈作为低级原语来创建更高级别的网络driver。 简而言之，Docker网络就是Linux网络。
 
 现有Linux内核功能的这种实现确保了高性能和健壮性。 最重要的是，它提供了跨许多发行版和版本的可移植性，从而增强了应用程序的可移植性。
 
-Docker使用几个Linux网络构建块来实现其本机CNM网络驱动程序。 此列表包括Linux网桥，网络命名空间，veth对和iptables。 这些工具的组合（作为网络驱动程序实现）为复杂的网络策略提供转发规则，网络分段和管理工具。
+Docker使用几个Linux网络构建块来实现其本机CNM网络driver。 此列表包括Linux网桥，网络命名空间，veth对和iptables。 这些工具的组合（作为网络驱动程序实现）为复杂的网络策略提供转发规则，网络分段和管理工具。
 
 ## Linux Bridge
 Linux网桥是第2层设备，它是Linux内核中物理交换机的虚拟实现。它根据通过检查流量动态学习的MAC地址转发流量。 Linux桥接器广泛用于许多Docker网络驱动程序中。 Linux桥不应与桥接器Docker网络驱动程序混淆，后者是Linux桥接器的更高级别实现。
@@ -722,6 +716,3 @@ Web服务在端口8000上公开，路由网络在Swarm集群中的每个主机�
 Docker是一种快速发展的技术，网络选项日益增长，每天都在满足越来越多的用例。现有的网络供应商，纯粹的SDN供应商和Docker本身都是这一领域的贡献者。与物理网络的紧密集成，网络监控和加密都是备受关注和创新的领域。
 
 本文档详述了一些但不是所有可能的部署和存在的CNM网络驱动程序。虽然有许多单独的驱动程序以及更多配置这些驱动程序的方法，但我们希望您可以看到常规部署的常用模型很少。了解每种模型的权衡取决于长期成功。
-
-
-
